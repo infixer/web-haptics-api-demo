@@ -1,5 +1,5 @@
 {
-  "name": "haptics-morse-workspace",
+  "name": "web-haptics-api-demo-workspace",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.11.1",

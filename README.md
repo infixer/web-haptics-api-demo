@@ -1,4 +1,4 @@
-# haptics-morse
+# web-haptics-api-demo
 
 [Web Haptics API](https://github.com/WICG/web-haptics)（提案中）の体験デモと、そのポリフィル。
 
@@ -69,7 +69,7 @@ pnpm dlx wrangler login
 pnpm deploy
 ```
 
-Worker 名は `apps/web/wrangler.jsonc` の `name`（既定 `haptics-morse`）で変えられます。
+Worker 名は `apps/web/wrangler.jsonc` の `name`（既定 `web-haptics-api-demo`）で変えられます。
 
 ## ポリフィルを別リポジトリへ切り出す
 

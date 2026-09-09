@@ -1,4 +1,4 @@
-# haptics-morse 設計書
+# web-haptics-api-demo 設計書
 
 モールス信号を「振動」で送受信する Web アプリ。
 Web Haptics API（提案中）の勉強会 10 分 LT のデモ台として設計する。
@@ -194,7 +194,7 @@ flowchart TB
 
 | リポジトリ | 責務 |
 |---|---|
-| `infixer/haptics-morse` （本リポジトリ） | アプリ。モールスのドメインロジック + UI + デモ |
+| `infixer/web-haptics-api-demo` （本リポジトリ） | アプリ。モールスのドメインロジック + UI + デモ |
 | `infixer/web-haptics-polyfill` （別途） | `navigator.playHaptics` / `--haptic` を生やすだけ。モールスを一切知らない |
 
 **鉄則: アプリはポリフィルの関数を import しない。副作用 import 1 行だけ。**
@@ -222,7 +222,7 @@ LT でこのスライドを見せると「ポリフィルとは何か」が 5 �
 ### 3.3 ディレクトリ構成
 
 ```
-haptics-morse/
+web-haptics-api-demo/
 ├── docs/
 │   ├── DESIGN.md          ← 本書
 │   ├── TALK.md            ← 10分LTの進行台本

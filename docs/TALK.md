@@ -281,7 +281,7 @@ gamepad.vibrationActuator.playEffect("dual-rumble", {
 > そこに設計判断がある、という話でした。」
 
 **リンク:**
-- デモ + 実装: `github.com/infixer/haptics-morse`
+- デモ + 実装: `github.com/infixer/web-haptics-api-demo`
 - ポリフィル: `github.com/infixer/polyfill-web-haptics-api`
 - 提案: `github.com/WICG/web-haptics`（Intent to Prototype 段階。**まだ意見を出せます**）
 

@@ -33,7 +33,7 @@
   <footer>
     <p>
       実装:
-      <a href="https://github.com/infixer/haptics-morse">infixer/haptics-morse</a>
+      <a href="https://github.com/infixer/web-haptics-api-demo">infixer/web-haptics-api-demo</a>
       ／ ポリフィル:
       <a href="https://github.com/infixer/polyfill-web-haptics-api"
         >infixer/polyfill-web-haptics-api</a

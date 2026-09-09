@@ -4,7 +4,7 @@
 
 > **セッション作成時のお願い:** リポジトリを 2 つ選べる UI なら、
 > `infixer/polyfill-web-haptics-api`（push 先）に加えて
-> `infixer/haptics-morse`（コピー元）も追加しておいてください。
+> `infixer/web-haptics-api-demo`（コピー元）も追加しておいてください。
 > 1 つしか選べない場合は前者を選んでください。プロンプト側で代替手順に分岐します。
 
 ---
@@ -17,7 +17,7 @@
 
 ## ゴール
 
-infixer/haptics-morse の main ブランチにある packages/polyfill-web-haptics-api/ の中身を、
+infixer/web-haptics-api-demo の main ブランチにある packages/polyfill-web-haptics-api/ の中身を、
 このリポジトリの**ルート直下**に移して、ビルドが通る状態で main に push する。
 
 パッケージ概要: Web Haptics API (WICG proposal, https://github.com/WICG/web-haptics) の
@@ -25,9 +25,9 @@ navigator.playHaptics を副作用 import 1 行で生やすポリフィル。
 
 ## Step 1: ソースを取得する
 
-infixer/haptics-morse は **private** です。次の順で試してください。
+infixer/web-haptics-api-demo は **private** です。次の順で試してください。
 
-1. add_repo ツールがあれば `owner=infixer, repo=haptics-morse, access=read` で呼び、
+1. add_repo ツールがあれば `owner=infixer, repo=web-haptics-api-demo, access=read` で呼び、
    指示された clone コマンドを実行する
 2. add_repo が無い、または権限エラーになる場合は、**そこで止まって私に報告してください。**
    その場合は私がローカルから直接 subtree push するので、この作業は不要になります。
@@ -37,7 +37,7 @@ infixer/haptics-morse は **private** です。次の順で試してください
 
 ## Step 2: ファイルを配置する
 
-haptics-morse の packages/polyfill-web-haptics-api/ にある**この 19 ファイル**を、
+web-haptics-api-demo の packages/polyfill-web-haptics-api/ にある**この 19 ファイル**を、
 このリポジトリのルート直下に、同じ相対パスで配置してください。
 
   LICENSE
@@ -136,7 +136,7 @@ package.json の repository.url は既にこのリポジトリを指している
 
 ---
 
-## 参考: 移設が終わったあとに haptics-morse 側でやること
+## 参考: 移設が終わったあとに web-haptics-api-demo 側でやること
 
 `apps/web/package.json` の依存を差し替える（今は pnpm workspace のリンクで解決している）:
 
@@ -145,5 +145,5 @@ package.json の repository.url は既にこのリポジトリを指している
 // npm 公開後は "^0.1.0"
 ```
 
-`packages/polyfill-web-haptics-api/` を haptics-morse に残したままなら workspace リンクが
+`packages/polyfill-web-haptics-api/` を web-haptics-api-demo に残したままなら workspace リンクが
 効き続けるので、当面は今のままでも動きます。
