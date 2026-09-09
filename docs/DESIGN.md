@@ -9,6 +9,34 @@ Web Haptics API（提案中）の勉強会 10 分 LT のデモ台として設計
 
 ---
 
+## スコープの変更（2026-09 時点）
+
+**この文書は当初「モールス信号アプリ」として書かれたもので、実装スコープは変わっています。**
+
+実際に作ったのは以下の 2 つで、いずれも `apps/web` の 1 ページに載っています:
+
+- **触覚ノッチ付きスライダー** — API が想定する使い方（§ 正の例）
+- **触覚あてゲーム / 神経衰弱** — 4 エフェクトの組み合わせで語彙を作る
+
+会場同期バイブは「フロントエンドのみ」の方針により見送りました（Durable Objects が必要なため）。
+モールスは実装しませんが、**「この API では原理的に打てない」という分析は LT のオチとして生きている**ので、
+以下の § 2 はそのまま背景資料として残してあります。
+
+### 調査で判明し、当初の記述を訂正した点
+
+一次資料（[MDN browser-compat-data](https://github.com/mdn/browser-compat-data) の生 JSON、
+[WICG/proposals#262](https://github.com/WICG/proposals/issues/262)、blink-dev）に当たった結果:
+
+| 項目 | 訂正内容 |
+|---|---|
+| **Firefox** | 16 で追加されたが **129 で削除済み**（2024/8）。Firefox Android は 79+ で `true` を返すが**振動しない** |
+| **特徴検出** | `typeof navigator.vibrate === "function"` は**当てにならない**。§ 6.3 の「ユーザーに聞く」設計の根拠がより強くなった |
+| **iframe** | Chrome 55 以降 **クロスオリジン iframe では振動しない**。スライドに埋め込むとデモが死ぬ |
+| **標準化段階** | WICG proposal は 2026-01-30 起票、Chromium は **Intent to Prototype**。Origin Trial でも ship でもない |
+| **iOS** | BCD の `safari_ios` は今も `false`。[#29166](https://github.com/mdn/browser-compat-data/issues/29166) の「iOS で動く」報告は switch ハックの誤認で、データは変更されずクローズ |
+
+---
+
 ## 0. 3 行まとめ
 
 1. モールス信号は **「持続時間」の言語**（短点 1 単位 / 長点 3 単位）。
