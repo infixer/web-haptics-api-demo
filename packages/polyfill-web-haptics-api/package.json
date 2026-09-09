@@ -1,0 +1,29 @@
+{
+  "name": "@infixer/polyfill-web-haptics-api",
+  "version": "0.1.0",
+  "description": "A polyfill for the Web Haptics API (navigator.playHaptics) proposed at WICG/web-haptics.",
+  "keywords": ["haptics", "polyfill", "vibration", "web-haptics", "playHaptics"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infixer/polyfill-web-haptics-api.git"
+  },
+  "type": "module",
+  "sideEffects": ["./dist/index.js", "./dist/index.cjs"],
+  "files": ["dist", "README.md", "LICENSE"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" },
+    "./manual": { "types": "./dist/manual.d.ts", "import": "./dist/manual.js", "require": "./dist/manual.cjs" },
+    "./debug": { "types": "./dist/debug.d.ts", "import": "./dist/debug.js", "require": "./dist/debug.cjs" },
+    "./css": { "types": "./dist/css.d.ts", "import": "./dist/css.js", "require": "./dist/css.cjs" }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
