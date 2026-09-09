@@ -11,7 +11,7 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@infixer/polyfill-web-haptics-api": "*"
+    "@infixer/polyfill-web-haptics-api": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/adapter-cloudflare": "^7.2.9",

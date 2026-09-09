@@ -2,16 +2,13 @@
   "name": "haptics-morse-workspace",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "packageManager": "pnpm@10.11.1",
   "scripts": {
-    "dev": "npm run build -w @infixer/polyfill-web-haptics-api && npm run dev -w web",
-    "dev:polyfill": "npm run dev -w @infixer/polyfill-web-haptics-api",
-    "build": "npm run build -w @infixer/polyfill-web-haptics-api && npm run build -w web",
-    "preview": "npm run preview -w web",
-    "check": "npm run typecheck -w @infixer/polyfill-web-haptics-api && npm run check -w web",
-    "deploy": "npm run build && npm run deploy -w web"
+    "dev": "pnpm --filter @infixer/polyfill-web-haptics-api build && pnpm --filter web dev",
+    "dev:polyfill": "pnpm --filter @infixer/polyfill-web-haptics-api dev",
+    "build": "pnpm --filter @infixer/polyfill-web-haptics-api build && pnpm --filter web build",
+    "preview": "pnpm --filter web preview",
+    "check": "pnpm --filter @infixer/polyfill-web-haptics-api typecheck && pnpm --filter web check",
+    "deploy": "pnpm build && pnpm --filter web deploy"
   }
 }

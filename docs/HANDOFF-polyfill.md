@@ -81,16 +81,16 @@ package.json の repository.url は既にこのリポジトリを指している
    "publishConfig": { "access": "public" }
 
 3. **GitHub Actions** (.github/workflows/ci.yml) — push と PR で
-   `npm ci && npm run typecheck && npm run build` を回すだけの最小構成。
+   `pnpm install --frozen-lockfile && pnpm typecheck && pnpm build` を回すだけの最小構成。
    Node は 22 を使ってください。
 
 ## Step 4: 検証する
 
 必ず実行して、すべて通ることを確認してください。
 
-  npm install
-  npm run typecheck     # tsc --noEmit / エラー 0 であること
-  npm run build         # tsup / ESM+CJS+d.ts が dist/ に出ること
+  pnpm install
+  pnpm typecheck     # tsc --noEmit / エラー 0 であること
+  pnpm build         # tsup / ESM+CJS+d.ts が dist/ に出ること
 
 そのうえで**パッケージの契約**を確認してください。ここが壊れていると利用側が動きません。
 
@@ -100,7 +100,7 @@ package.json の repository.url は既にこのリポジトリを指している
 - "sideEffects" が ["./dist/index.js", "./dist/index.cjs"] になっている
   （index だけが副作用エントリ。ここが壊れるとバンドラに消される）
 - "files" が ["dist", "README.md", "LICENSE"] になっている
-- `npm pack --dry-run` の出力に src/ や node_modules が混入していない
+- `pnpm pack --dry-run` の出力に src/ や node_modules が混入していない
 
 最後に、実際に import できるかを確認してください:
 
@@ -120,7 +120,7 @@ package.json の repository.url は既にこのリポジトリを指している
 
 - 実装の変更・リファクタ・「改善」
 - README の書き換え（制約や既知の落とし穴を意図的に書いてあります）
-- npm publish（公開は私が判断します。Step 4 の npm pack --dry-run までで止めてください）
+- npm publish（公開は私が判断します。Step 4 の pnpm pack --dry-run までで止めてください）
 - ソースが取得できないときに、記憶や推測でコードを書き起こすこと
 
 ## 補足: このパッケージの設計意図
@@ -138,7 +138,7 @@ package.json の repository.url は既にこのリポジトリを指している
 
 ## 参考: 移設が終わったあとに haptics-morse 側でやること
 
-`apps/web/package.json` の依存を差し替える（今は npm workspace のリンクで解決している）:
+`apps/web/package.json` の依存を差し替える（今は pnpm workspace のリンクで解決している）:
 
 ```jsonc
 "@infixer/polyfill-web-haptics-api": "github:infixer/polyfill-web-haptics-api"

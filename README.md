@@ -31,20 +31,20 @@
 ## 開発
 
 ```sh
-npm install
-npm run dev        # ポリフィルをビルドしてから vite dev
+pnpm install
+pnpm dev        # ポリフィルをビルドしてから vite dev
 ```
 
 ポリフィルを触りながら開発するなら、別ターミナルで watch を回す:
 
 ```sh
-npm run dev:polyfill
+pnpm dev:polyfill
 ```
 
 ```sh
-npm run check      # 型チェック（ポリフィル + svelte-check）
-npm run build
-npm run preview
+pnpm check      # 型チェック（ポリフィル + svelte-check）
+pnpm build
+pnpm preview
 ```
 
 ### ⚠️ 実機テストは HTTPS が必須
@@ -54,7 +54,7 @@ LAN の IP（`http://192.168.x.x:5173`）にスマホから繋いでも、**平�
 バグに見えますが仕様です。トンネルを通してください:
 
 ```sh
-npx cloudflared tunnel --url http://localhost:5173
+pnpm dlx cloudflared tunnel --url http://localhost:5173
 ```
 
 もう一つの罠として、**Chrome 55 以降クロスオリジン iframe では振動しません。**
@@ -65,8 +65,8 @@ npx cloudflared tunnel --url http://localhost:5173
 `@sveltejs/adapter-cloudflare` で静的アセットとして配信します。サーバー処理はありません。
 
 ```sh
-npx wrangler login
-npm run deploy
+pnpm dlx wrangler login
+pnpm deploy
 ```
 
 Worker 名は `apps/web/wrangler.jsonc` の `name`（既定 `haptics-morse`）で変えられます。

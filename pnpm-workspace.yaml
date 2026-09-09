@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+# esbuild / workerd はネイティブバイナリの配置に install スクリプトが必要
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
