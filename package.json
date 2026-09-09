@@ -4,11 +4,11 @@
   "type": "module",
   "packageManager": "pnpm@10.11.1",
   "scripts": {
-    "dev": "pnpm --filter @infixer/polyfill-web-haptics-api build && pnpm --filter web dev",
-    "dev:polyfill": "pnpm --filter @infixer/polyfill-web-haptics-api dev",
-    "build": "pnpm --filter @infixer/polyfill-web-haptics-api build && pnpm --filter web build",
-    "preview": "pnpm --filter web preview",
-    "check": "pnpm --filter @infixer/polyfill-web-haptics-api typecheck && pnpm --filter web check",
-    "deploy": "pnpm build && pnpm --filter web deploy"
+    "dev": "pnpm --filter @infixer/polyfill-web-haptics-api run build && pnpm --filter web run dev",
+    "dev:polyfill": "pnpm --filter @infixer/polyfill-web-haptics-api run dev",
+    "build": "pnpm --filter @infixer/polyfill-web-haptics-api run build && pnpm --filter web run build",
+    "preview": "pnpm --filter web run preview",
+    "check": "pnpm --filter @infixer/polyfill-web-haptics-api run typecheck && pnpm --filter web run check",
+    "deploy": "pnpm run build && pnpm --filter web run deploy"
   }
 }

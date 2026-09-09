@@ -66,7 +66,7 @@ pnpm dlx cloudflared tunnel --url http://localhost:5173
 
 ```sh
 pnpm dlx wrangler login
-pnpm deploy
+pnpm run deploy   # pnpm deploy は組み込みコマンドなので run が必要
 ```
 
 Worker 名は `apps/web/wrangler.jsonc` の `name`（既定 `web-haptics-api-demo`）で変えられます。
