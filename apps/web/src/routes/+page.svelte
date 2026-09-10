@@ -25,6 +25,13 @@
     </p>
   </header>
 
+  <section class="card" style="padding: 1.25rem">
+    <h2>スマホで実際に振動を試す</h2>
+    <p>Android のリズム振動と、iPhone の直接タップ式スイッチを試せます。以下の提案 API デモとは別の経路です。</p>
+    <a class="btn" href="/lab">スマホ触覚ラボを開く →</a>
+    <p class="muted">iOS のポリフィルでは自動連打やスライダーの触覚を再現できません。</p>
+  </section>
+
   <Monitor />
   <Setup />
   <NotchedSlider />

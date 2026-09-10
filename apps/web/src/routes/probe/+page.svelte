@@ -92,7 +92,7 @@
     <h2>A. 対照実験（スクリプトを一切通さない）</h2>
     <p>
       これは本物のスイッチです。<strong>つまみを指で直接タップ</strong>してください。
-      ここで振動しないなら、原因はコードではなく端末側です。
+      ここで振動しなければ、端末設定・OS・ブラウザ・コントロールの表示を確認してください。
     </p>
     <label class="real">
       <input type="checkbox" {...{ switch: "" }} />
@@ -116,7 +116,7 @@
 
   <dl class="env">
     <dt>switch 属性</dt>
-    <dd>{switchSupported === null ? "…" : switchSupported ? "あり（iOS 17.4+ 相当）" : "なし"}</dd>
+    <dd>{switchSupported === null ? "…" : switchSupported ? "あり（触覚の対応・OSバージョンは判定不可）" : "なし"}</dd>
     <dt>UA</dt>
     <dd class="ua">{ua}</dd>
   </dl>
