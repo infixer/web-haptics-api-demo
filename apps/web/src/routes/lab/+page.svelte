@@ -8,10 +8,12 @@
   let enabled = $state(true);
   let overlay = $state(false);
   let saved = $state(false);
+  let platform = $state<'android' | 'ios'>('android');
+  let selected = $state('');
   let reference: HTMLInputElement;
   let scale = $state(1);
   let duration = $state(80);
-  let status = $state('まず1回タップして、指で感触を確かめてください。音は出ません。');
+  let status = $state('タップして試す');
   let last = $state('未操作');
   let felt = $state('未回答');
   let device = $state('');
@@ -27,12 +29,13 @@
   }
   function play(name: string, pattern: readonly number[]) {
     if (!enabled) { status = '振動はオフです。'; return; }
-    if (!vibrate) { status = 'このブラウザには Vibration API がありません。iPhone は下のスイッチを試してください。'; return; }
+    if (!vibrate) { status = 'このブラウザは非対応です'; return; }
     if (document.visibilityState !== 'visible') return;
     try {
       const result = navigator.vibrate([...pattern]);
       note(`${name}: [${pattern.join(', ')}] ms / 戻り値 ${result}`);
-      status = result ? `${name}を要求しました。true は実際の振動を保証しません。` : 'ブラウザが要求を受け付けませんでした。設定と通常タブでの表示を確認してください。';
+      selected = name;
+      status = result ? `${name}をリクエスト` : '振動をリクエストできませんでした';
     } catch (error) { status = `振動要求に失敗しました: ${String(error)}`; }
   }
   function stop() {
@@ -41,7 +44,19 @@
   }
   function nativeChange(event: Event, name: string) {
     note(`${name}: change.isTrusted=${event.isTrusted}`);
-    status = 'スイッチが切り替わりました。イベントの記録は振動の証明ではありません。';
+    status = '切り替えました';
+  }
+  function switchTab(next: 'android' | 'ios') {
+    stop();
+    platform = next;
+    status = next === 'ios' ? 'スイッチを直接タップ' : 'タップして試す';
+  }
+  function tabKey(event: KeyboardEvent) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 'android' : event.key === 'End' ? 'ios' : platform === 'android' ? 'ios' : 'android';
+    switchTab(next);
+    document.getElementById(`tab-${next}`)?.focus();
   }
   function move(event: Event) {
     slider = Number((event.currentTarget as HTMLInputElement).value);
@@ -65,6 +80,11 @@
     switches = 'switch' in document.createElement('input');
     secure = isSecureContext;
     ua = navigator.userAgent;
+    // A convenience default only; capability detection still controls availability.
+    if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      platform = 'ios';
+      status = 'スイッチを直接タップ';
+    }
     const hide = () => { if (document.hidden) stop(); };
     document.addEventListener('visibilitychange', hide);
     return () => { document.removeEventListener('visibilitychange', hide); stop(); };
@@ -75,92 +95,125 @@
 
 <main>
   <header>
-    <a href="/">← Web Haptics API の提案デモ</a>
-    <p class="eyebrow">MOBILE HAPTICS · 実機で確かめる</p>
-    <h1>指先で、確かめる。</h1>
-    <p>Android は長さとリズム。iPhone は直接タップの1クリック。使える仕組みに合わせた、音なしのデモです。</p>
+    <a class="back" href="/" aria-label="提案デモに戻る">←</a>
+    <h1>Haptics Lab<span>触って、感じる。</span></h1>
+    <label class="enable"><input type="checkbox" bind:checked={enabled} onchange={() => { if (!enabled) stop(); else status = 'タップして試す'; }} /><span>振動</span></label>
   </header>
-  <div class="toolbar">
-    <label><input type="checkbox" bind:checked={enabled} onchange={() => { if (!enabled) stop(); }} /> 振動を有効にする</label>
-    <button onclick={stop}>Android の振動を停止</button>
-  </div>
-  <p class="status" role="status">{status}</p>
 
-  <section class="card">
-    <div class="heading"><h2>01 / Android — リズムを選ぶ</h2><span>{vibrate ? 'API あり・実振動は要確認' : 'Vibration API なし'}</span></div>
-    <p>Chrome などの対応ブラウザで、カードをタップ。強さではなく<strong>振動時間</strong>を調整します。</p>
+  <div class="tabs" role="tablist" aria-label="デバイス">
+    <button id="tab-android" role="tab" aria-selected={platform === 'android'} aria-controls="panel-android" tabindex={platform === 'android' ? 0 : -1} onclick={() => switchTab('android')} onkeydown={tabKey}>Android</button>
+    <button id="tab-ios" role="tab" aria-selected={platform === 'ios'} aria-controls="panel-ios" tabindex={platform === 'ios' ? 0 : -1} onclick={() => switchTab('ios')} onkeydown={tabKey}>iOS</button>
+  </div>
+
+  <div id="panel-android" role="tabpanel" aria-labelledby="tab-android" hidden={platform !== 'android'} tabindex="0">
+    {#if !vibrate}<p class="notice">対応するAndroidブラウザで開いてください。</p>{/if}
     <div class="patterns">
       {#each mobilePatterns as item}
-        <button class="pattern" disabled={!vibrate || !enabled} onclick={() => play(item.name, scalePattern(item.pattern, scale))}>
+        <button class="pattern" class:selected={selected === item.name} disabled={!vibrate || !enabled} onclick={() => play(item.name, scalePattern(item.pattern, scale))}>
           <span class="bars" aria-hidden="true">{#each item.pattern as ms, i}<i class:gap={i % 2 === 1} style:width={`${Math.max(6, ms / 3)}px`}></i>{/each}</span>
-          <strong>{item.name}</strong><span>{item.detail}</span>
+          <span class="pattern-label">{item.name}<span aria-hidden="true">↗</span></span>
         </button>
       {/each}
     </div>
-    <label class="range">パルスの長さ ×{scale.toFixed(1)}<input type="range" min="0.5" max="3" step="0.1" bind:value={scale} /></label>
-    <details><summary>感じにくい端末で調整する</summary>
-      <p>短いパルスが弱ければ、まず200msで確認してください。端末・ブラウザの振動設定や省電力・サイレント設定でも結果が変わります。</p>
-      <label class="range">単発 {duration} ms<input type="range" min="10" max="300" step="10" bind:value={duration} /></label>
-      <div class="actions"><button disabled={!vibrate || !enabled} onclick={() => play('単発', [duration])}>この長さで試す</button><button disabled={!vibrate || !enabled} onclick={() => play('基準', [200])}>200ms の基準振動</button></div>
+    <div class="controls">
+      <label class="range"><span>振動の長さ <output>×{scale.toFixed(1)}</output></span><input type="range" min="0.5" max="3" step="0.1" bind:value={scale} disabled={!vibrate || !enabled} /></label>
+      <label class="range"><span>ノッチをなぞる <output>{slider}</output></span><input type="range" min="0" max="100" value={slider} oninput={move} disabled={!vibrate || !enabled} /></label>
+      <div class="actions"><button class="baseline" disabled={!vibrate || !enabled} onclick={() => play('基準', [200])}>200ms を試す</button><button class="stop" onclick={stop} disabled={!vibrate} aria-label="振動を停止"><span aria-hidden="true">■</span> 停止</button></div>
+    </div>
+    <details class="extra"><summary>細かく調整</summary>
+      <label class="range"><span>単発 <output>{duration} ms</output></span><input type="range" min="10" max="300" step="10" bind:value={duration} /></label>
+      <button disabled={!vibrate || !enabled} onclick={() => play('単発', [duration])}>この長さで試す</button>
     </details>
-    <label class="range">ノッチをなぞる <output>{slider}</output><input type="range" min="0" max="100" value={slider} oninput={move} disabled={!vibrate || !enabled} /></label>
-    <p class="small">iPhone でドラッグ中の振動や自動連打を再現する機能ではありません。</p>
-  </section>
+  </div>
 
-  <section class="card">
-    <div class="heading"><h2>02 / iPhone — タップで1クリック</h2><span>{switches ? 'switch 属性あり・実振動は要確認' : 'switch 属性なし'}</span></div>
-    <p>まず<strong>スイッチ本体</strong>を指でタップ。iOS 18以降のWebKitにはシステムの触覚があります。最新版での感触は実機で確認してください。</p>
-    <div class="reference"><input bind:this={reference} type="checkbox" {...{ switch: '' }} aria-label="基準スイッチ" disabled={!enabled} onchange={(e) => nativeChange(e, '可視スイッチ')} /><span>基準スイッチ</span></div>
-    <label class="optin"><input type="checkbox" bind:checked={overlay} /> 透明スイッチの実験を有効にする</label>
-    <p class="small">この実験では下の「お気に入り」の上からスクロールを始めにくくなることがあります。周囲の余白からスクロールしてください。</p>
-    {#if overlay && switches}
-      <div class="favorite" class:saved class:disabled={!enabled}>
-        <span aria-hidden="true">{saved ? '♥ お気に入り登録済み' : '♡ お気に入りに追加'}</span>
-        <input class="overlay" type="checkbox" {...{ switch: '' }} aria-label="お気に入り" bind:checked={saved} disabled={!enabled} onchange={(e) => nativeChange(e, '透明スイッチ')} />
+  <div id="panel-ios" role="tabpanel" aria-labelledby="tab-ios" hidden={platform !== 'ios'} tabindex="0">
+    {#if !switches}<p class="notice">iPhoneのSafariで試してください。</p>{/if}
+    <div class="ios-surface">
+      <div class="reference">
+        <div><h2>スイッチ</h2><p>本体を直接タップ</p></div>
+        <input bind:this={reference} type="checkbox" {...{ switch: '' }} aria-label="基準スイッチ" disabled={!enabled || !switches} onchange={(e) => nativeChange(e, '可視スイッチ')} />
       </div>
-    {:else}
-      <p class="small">switch 属性のあるブラウザで実験を有効にすると、タップ用コントロールが表示されます。</p>
-    {/if}
-    <p>切り替えを指で直接行う方式です。完了通知などをJavaScriptから好きなタイミングで鳴らすことや、振動の強さ・リズムの指定はできません。</p>
-    <details><summary>合成クリックと比較する</summary>
-      <p>同じ基準スイッチをスクリプトで操作します。切り替わっても、現在のiOSでは触覚が出ないと予想されます。</p>
-      <button disabled={!enabled} onclick={() => { reference.click(); note('合成 input.click() を要求'); status = '合成クリックを送りました。直接タップとの感触を比較してください。'; }}>基準スイッチを .click() で操作</button>
-      <a href="/probe">label.click() を含む詳細比較 →</a>
+      <div class="overlay-demo">
+        <label class="optin"><span>ボタンで試す <small>実験</small></span><input type="checkbox" bind:checked={overlay} disabled={!switches} /></label>
+        <div class="favorite" class:saved class:disabled={!enabled || !overlay || !switches}>
+          <span aria-hidden="true"><span class="heart">{saved ? '♥' : '♡'}</span>{saved ? 'お気に入り済み' : 'お気に入り'}</span>
+          <input class="overlay" type="checkbox" {...{ switch: '' }} aria-label="お気に入り" bind:checked={saved} disabled={!enabled || !overlay || !switches} onchange={(e) => nativeChange(e, '透明スイッチ')} />
+        </div>
+        <p class="hint">{overlay ? 'スクロールはボタンの外側から。' : '有効にするとボタンを試せます。'}</p>
+      </div>
+    </div>
+    <p class="platform-note">直接タップで1クリック。強さ・連打の指定はできません。</p>
+    <details class="extra"><summary>仕組みを比較</summary>
+      <p>スクリプトからのクリックは、現在のiOSでは振動しない想定です。</p>
+      <button disabled={!enabled || !switches} onclick={() => { reference.click(); note('合成 input.click() を要求'); status = '合成クリックをリクエスト'; }}>スクリプトで切り替え</button>
+      <a href="/probe">詳細な比較テスト →</a>
     </details>
-  </section>
+  </div>
 
-  <section class="card">
-    <h2>03 / 感じた結果を残す</h2>
-    <p class="small">直前の操作: {last}</p>
-    <fieldset><legend>実際に振動を感じましたか？</legend><div class="actions">{#each ['感じた', '弱い', '感じない'] as answer}<button aria-pressed={felt === answer} onclick={() => { felt = answer; logs = [`${new Date().toISOString()} 申告: ${answer} / ${last}`, ...logs].slice(0,30); }}>{answer}</button>{/each}</div></fieldset>
-    <label class="range">端末・OS・ブラウザのバージョン（手入力）<input type="text" bind:value={device} placeholder="例: iPhone SE 第3世代 / iOS 26.6.2 / Safari" /></label>
-    <button onclick={download}>検証結果を JSON で保存</button>
-    <p class="small">このページから結果を送信しません。UAだけでは正確なOSバージョンを判定できません。</p>
-    <details><summary>環境情報と注意点</summary><p>Secure context: {secure ? 'yes' : 'no'} / Vibration API: {vibrate ? 'あり' : 'なし'} / switch: {switches ? 'あり' : 'なし'}</p><p class="ua">{ua}</p><p>スマホではHTTPSの通常タブで開いてください。APIの存在・戻り値・画面の変化だけでは実際の振動を確認できません。音による代用や自動フォールバックはありません。</p></details>
-  </section>
-  <footer>調査: 2026-09-10 · <a href="https://github.com/WebKit/WebKit/commit/4a8a90644cfc7a9a4b3cab13c4c0b49c53862787">WebKit の合成クリック制限</a> · <a href="https://googlechrome.github.io/samples/vibration/">Chrome の振動サンプル</a></footer>
+  <div class="feedback"><span class="feedback-mark" aria-hidden="true">⌁</span><p role="status">{enabled ? status : '振動オフ'}</p><span class="silent">音なし</span></div>
+
+  <details class="diagnostics">
+    <summary>検証・記録</summary>
+    <p class="small">表示は操作の記録です。実際の振動は指で確認してください。</p>
+    <fieldset><legend>感じましたか？</legend><div class="actions">{#each ['感じた', '弱い', '感じない'] as answer}<button aria-pressed={felt === answer} onclick={() => { felt = answer; logs = [`${new Date().toISOString()} 申告: ${answer} / ${last}`, ...logs].slice(0,30); }}>{answer}</button>{/each}</div></fieldset>
+    <label class="range"><span>端末・OS・ブラウザ</span><input type="text" bind:value={device} placeholder="例: iPhone / iOS 26.6.2 / Safari" /></label>
+    <button onclick={download}>JSON を保存</button>
+    <p class="small">この端末に保存します。外部への送信はありません。</p>
+    <details><summary>環境情報</summary><p class="small">直前の操作: {last}</p><p class="small">Secure context: {secure ? 'yes' : 'no'} / Vibration API: {vibrate ? 'あり' : 'なし'} / switch: {switches ? 'あり' : 'なし'}</p><p class="ua">{ua}</p><p class="small">実機ではHTTPSの通常タブを推奨。APIの存在や戻り値は実振動を保証しません。</p></details>
+  </details>
 </main>
 
 <style>
-  main { max-width: 760px; margin: auto; padding: 1.5rem 1rem 4rem; display: grid; gap: 1.25rem; }
-  a { color: var(--accent); } header p { max-width: 56ch; } h1 { font-size: clamp(2rem, 7vw, 3rem); } h2 { font-size: 1.15rem; }
-  .eyebrow { color: var(--accent); font: 0.85rem var(--mono); margin-top: 1.5rem; }
-  .card { padding: clamp(1rem, 4vw, 1.5rem); } .heading { display: grid; gap: 0.4rem; } .heading > span, .small, footer { font-size: 0.875rem; color: var(--text-dim); }
-  button { min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface); cursor: pointer; }
-  button:active { background: var(--accent-soft); } button:disabled, .disabled { opacity: 0.5; cursor: default; }
+  main { max-width: 540px; margin: auto; padding: 1.25rem 1rem 3rem; }
+  header { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.5rem; }
+  a { color: var(--accent); }
+  .back { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; color: var(--text); text-decoration: none; font-size: 1.3rem; flex: none; }
+  h1 { flex: 1; font-size: 1.3rem; letter-spacing: -0.04em; } h1 span { display: block; margin-top: 0.25rem; font-size: 0.8rem; font-weight: 400; letter-spacing: 0; color: var(--text-dim); }
+  h2 { font-size: 1rem; } p { margin: 0; }
+  .enable { display: flex; align-items: center; gap: 0.4rem; min-height: 44px; font-size: 0.875rem; }
+  input[type=checkbox] { accent-color: var(--accent); }
+  button { min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); cursor: pointer; font-size: 0.875rem; }
+  button:disabled, .disabled { opacity: 0.4; cursor: default; }
+  button:active:not(:disabled) { transform: scale(0.98); }
   button[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); }
-  .toolbar, .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
-  .status { padding: 1rem; margin: 0; background: var(--accent-soft); border-radius: 9px; }
-  .patterns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-  .pattern { text-align: left; display: grid; gap: 0.4rem; padding: 1rem; } .pattern > span:last-child { font-size: 0.875rem; color: var(--text-dim); }
-  .bars { display: flex; align-items: center; height: 30px; } i { height: 22px; border-radius: 3px; background: var(--accent); } i.gap { background: transparent; }
-  .range { display: grid; gap: 0.6rem; margin: 1.25rem 0; } input[type=range] { width: 100%; min-height: 44px; accent-color: var(--accent); } input[type=text] { width: 100%; min-width: 0; padding: 0.75rem; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; }
-  details { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; } summary { cursor: pointer; min-height: 44px; } details a { display: block; margin-top: 1rem; }
-  .reference { display: flex; align-items: center; gap: 1rem; padding: 1rem 0 1.5rem; } .reference input { appearance: auto; width: 3.5rem; height: 2rem; }
-  .optin { display: flex; gap: 0.7rem; align-items: center; min-height: 44px; }
-  .favorite { position: relative; width: min(100%, 320px); height: 64px; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 16px; background: var(--surface); font-weight: 700; clip-path: inset(0 round 16px); }
+  .tabs { display: flex; padding: 5px; gap: 5px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 14px; margin-bottom: 1rem; }
+  .tabs button { flex: 1; border: 0; background: transparent; font-size: 1rem; font-weight: 600; color: var(--text-dim); }
+  .tabs button[aria-selected=true] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  [role=tabpanel][hidden] { display: none; }
+  .notice { font-size: 0.875rem; padding: 0.75rem 1rem; margin-bottom: 1rem; background: var(--accent-soft); border-radius: 10px; }
+  .patterns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+  .pattern { min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; padding: 1.15rem; text-align: left; border-color: var(--border); border-radius: 16px; transition: background 150ms, transform 100ms; }
+  .pattern.selected { background: var(--accent-soft); border-color: var(--accent); }
+  .pattern-label { display: flex; align-items: center; justify-content: space-between; width: 100%; font-size: 1rem; font-weight: 600; }
+  .pattern-label > span { color: var(--text-dim); font-weight: 400; }
+  .bars { display: flex; align-items: center; height: 28px; }
+  i { height: 25px; border-radius: 3px; background: var(--accent); } i.gap { background: transparent; }
+  .controls { border: 1px solid var(--border); border-radius: 16px; padding: 0.9rem 1.1rem 1.1rem; background: var(--surface); margin-top: 0.8rem; }
+  .range { display: grid; gap: 0.25rem; margin: 0.65rem 0; font-size: 0.875rem; }
+  .range > span { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  output { font-family: var(--mono); color: var(--accent); }
+  input[type=range] { width: 100%; min-height: 40px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+  input[type=text] { width: 100%; min-width: 0; padding: 0.75rem; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; } .baseline { flex: 1; } .stop { background: var(--surface-2); border-color: transparent; } .stop span { font-size: 0.7rem; }
+  details { border-top: 1px solid var(--border); padding-top: 0.25rem; }
+  summary { display: list-item; padding: 0.75rem 0; min-height: 44px; cursor: pointer; color: var(--text-dim); font-size: 0.875rem; }
+  .extra { margin-top: 0.8rem; } details p { font-size: 0.875rem; color: var(--text-dim); margin: 0.5rem 0 1rem; } details a { display: block; margin: 0.75rem 0; font-size: 0.875rem; }
+  .ios-surface { border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; background: var(--surface); }
+  .reference { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.25rem 0 1.5rem; }
+  .reference p { color: var(--text-dim); font-size: 0.875rem; margin-top: 0.3rem; }
+  .reference input { appearance: auto; width: 3.5rem; height: 2rem; flex: none; }
+  .overlay-demo { border-top: 1px solid var(--border); padding-top: 0.8rem; }
+  .optin { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 1rem; font-size: 0.875rem; }
+  .optin small { font-size: 0.75rem; color: var(--text-dim); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 5px; margin-left: 0.4rem; }
+  .favorite { position: relative; width: 100%; height: 76px; margin: 0.9rem 0; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 16px; background: var(--surface); font-weight: 600; clip-path: inset(0 round 16px); }
+  .favorite > span { display: flex; align-items: center; gap: 0.7rem; } .heart { font-size: 1.6rem; color: var(--accent); }
   .favorite.saved { background: var(--accent-soft); color: var(--accent); }
   .favorite:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: -4px; }
   .overlay { position: absolute; inset: 0; margin: 0; width: 100%; height: 100%; appearance: auto; -webkit-appearance: auto; opacity: 0; cursor: pointer; clip-path: inset(0 round 16px); }
-  fieldset { border: 0; padding: 0; margin: 1rem 0; } legend { margin-bottom: 0.5rem; } .ua { overflow-wrap: anywhere; }
+  .hint, .platform-note { font-size: 0.8rem; color: var(--text-dim); } .platform-note { margin-top: 0.9rem; }
+  .feedback { display: flex; align-items: center; gap: 0.6rem; min-height: 44px; margin: 0.4rem 0 1rem; font-size: 0.8rem; color: var(--text-dim); }
+  .feedback p { flex: 1; overflow-wrap: anywhere; } .feedback-mark { font-size: 1.5rem; color: var(--accent); } .silent { flex: none; font-size: 0.75rem; }
+  .small, .ua { font-size: 0.8rem; overflow-wrap: anywhere; }
+  fieldset { border: 0; padding: 0; margin: 1rem 0; } legend { font-size: 0.875rem; margin-bottom: 0.5rem; }
+  @media (max-width: 360px) { .pattern { padding: 0.85rem; } main { padding-inline: 0.75rem; } h1 { font-size: 1.15rem; } }
 </style>
