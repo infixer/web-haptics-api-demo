@@ -3,13 +3,32 @@ import type { HapticEffect } from "../types.js";
 import type { Backend } from "./types.js";
 
 /**
- * iOS Safari has no Vibration API, but toggling a `<input type="checkbox" switch>`
- * produces a real system haptic tap (iOS 17.4+). Clicking a hidden one is the
- * only way to reach the Taptic Engine from the web.
+ * NOT IN THE LADDER. Kept as the record of a technique that stopped working.
  *
- * The catch: it is one fixed tap. There is no duration and no strength, so
- * `hint`, `tick` and `align` are indistinguishable here and weight can only be
- * approximated by tapping more than once.
+ * iOS Safari has no Vibration API. Toggling an `<input type="checkbox" switch>`
+ * produces a real system haptic tap — added in **iOS 18.0**, not 17.4 (17.4
+ * shipped the `switch` attribute; the haptic came a release later), and
+ * explicitly allowed on the click path by WebKit bug #271711.
+ *
+ * It no longer works. WebKit bug #285120 (2025-01-03) first required user
+ * activation, and iOS later stopped honouring synthetic clicks altogether: as
+ * of the devices we tested, only a direct finger tap on the control fires the
+ * haptic. Apple documented none of this. Verified on device against four
+ * separate implementations, including the upstream `web-haptics` library this
+ * file was modelled on — see `docs/FINDINGS-ios-switch.md`.
+ *
+ * `probe()` cannot detect any of that: the API reports nothing back, so
+ * "the attribute exists" is the most it can ever know. That is why this
+ * backend is unlisted rather than fixed.
+ *
+ * The only technique that still reaches the Taptic Engine is to put a real
+ * switch under the user's own finger (an invisible one overlaid on a button),
+ * which cannot serve an imperative `playHaptics()` call and so has no place in
+ * a polyfill for it.
+ *
+ * The original caveat still stands on top of all that: it is one fixed tap,
+ * with no duration and no strength, so `hint`, `tick` and `align` collapse
+ * into the same sensation and weight can only be faked by tapping twice.
  */
 const REPEAT_GAP_MS = 22;
 

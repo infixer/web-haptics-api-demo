@@ -98,7 +98,7 @@ cp -r packages/polyfill-web-haptics-api/{src,package.json,tsconfig.json,tsup.con
 | | |
 |---|---|
 | [docs/DESIGN.md](docs/DESIGN.md) | 設計と、調べて分かった API の実態 |
-| [docs/TALK.md](docs/TALK.md) | 10 分 LT の進行台本 |
+| [docs/FINDINGS-ios-switch.md](docs/FINDINGS-ios-switch.md) | iOS switch ハックの実機検証ログと一次情報調査 |
 | [docs/IDEAS.md](docs/IDEAS.md) | 他のアプリ案 |
 | [packages/polyfill-web-haptics-api/README.md](packages/polyfill-web-haptics-api/README.md) | ポリフィルの仕様・フォールバック・制約 |
 

@@ -1,6 +1,5 @@
 import { hasStickyActivation, watchActivation } from "./activation.js";
 import { gamepadBackend } from "./backends/gamepad.js";
-import { iosSwitchBackend } from "./backends/iosSwitch.js";
 import { simulatorBackend } from "./backends/simulator.js";
 import type { Backend, BackendId } from "./backends/types.js";
 import { vibrateBackend } from "./backends/vibrate.js";
@@ -20,10 +19,17 @@ export interface InstallOptions {
 
 /**
  * Ordered best-first. `simulator` is never reached unless explicitly enabled.
+ *
+ * `iosSwitchBackend` is deliberately absent. It probes true on every iOS 17.4+
+ * device and then delivers nothing, because iOS no longer plays the switch
+ * haptic for a synthetic click — see `backends/iosSwitch.ts` and
+ * `docs/FINDINGS-ios-switch.md`. Listing it would hand every iPhone a backend
+ * that silently does nothing, which is strictly worse than resolving to none:
+ * with no backend the page falls through to the "did you feel it?" calibration
+ * and the audible stand-in, which is the only honest answer we have on iOS.
  */
 const LADDER: readonly Backend[] = [
   vibrateBackend,
-  iosSwitchBackend,
   gamepadBackend,
   simulatorBackend,
 ];

@@ -34,6 +34,8 @@ Web Haptics API（提案中）の勉強会 10 分 LT のデモ台として設計
 | **iframe** | Chrome 55 以降 **クロスオリジン iframe では振動しない**。スライドに埋め込むとデモが死ぬ |
 | **標準化段階** | WICG proposal は 2026-01-30 起票、Chromium は **Intent to Prototype**。Origin Trial でも ship でもない |
 | **iOS** | BCD の `safari_ios` は今も `false`。[#29166](https://github.com/mdn/browser-compat-data/issues/29166) の「iOS で動く」報告は switch ハックの誤認で、データは変更されずクローズ |
+| **iOS switch の触覚（時期）** | 本書が各所で書いている「iOS 17.4+」は誤り。17.4 で入ったのは **`switch` 属性**で、**触覚は iOS 18.0 から**（[Safari 18.0](https://webkit.org/blog/15865/webkit-features-in-safari-18-0/)、[WebKit #271711](https://bugs.webkit.org/show_bug.cgi?id=271711)） |
+| **iOS switch の触覚（現状）** | **`label.click()` では鳴らない。** 実機検証で確定（`docs/FINDINGS-ios-switch.md`）。[#285120](https://bugs.webkit.org/show_bug.cgi?id=285120) が user activation を必須化し、その後 iOS は合成クリック自体を無視するようになった。**Apple は未告知**で、公開されている WebKit のコードにも該当箇所が無い。参考ライブラリ web-haptics 自身も同一端末で鳴らない |
 
 ---
 
@@ -51,7 +53,7 @@ Web Haptics API（提案中）の勉強会 10 分 LT のデモ台として設計
 
 | レイヤ | 実体 | 表現力 | 対応状況 |
 |---|---|---|---|
-| **L1: 生パターン** | `navigator.vibrate(pattern)` | ON/OFF の時間列。**duration を完全に制御できる** | Android Chrome ○ / **iOS Safari ✕** / デスクトップ ✕ |
+| **L1: 生パターン** | `navigator.vibrate(pattern)` | ON/OFF の時間列。**duration を完全に制御できる**（ただし数 ms はモーターの起動時間に埋もれる） | Android Chrome ○ / **iOS Safari ✕** / デスクトップ ✕ |
 | **L2: 意味エフェクト** | `navigator.playHaptics(effect, intensity)` | `hint`/`edge`/`tick`/`align` の 4 種のみ。**duration は指定できない** | **どのブラウザも未実装**（early ideation 段階） |
 | **L3: 宣言的 CSS** | `@haptic <effect> <intensity>?` | CSS ルールがマッチし始めた瞬間に発火 | 未実装 |
 
@@ -103,8 +105,13 @@ off = 20 - on
 // intensity 0.5, duration 100ms → [10,10, 10,10, 10,10, 10,10, 10,10]
 ```
 
-**ハック 2: iOS の `<input type="checkbox" switch>` を programmatic click**
-iOS 17.4+ Safari では、この switch コントロールをトグルすると**本物の触覚 tick が 1 回鳴る**。web-haptics は非表示の `<label><input type="checkbox" switch></label>` を作り、`label.click()` を rAF ループで連打している。
+**ハック 2: iOS の `<input type="checkbox" switch>` を programmatic click** ⚠️ **現在は動作しない**
+iOS 18.0+ Safari では、この switch コントロールをトグルすると**本物の触覚 tick が 1 回鳴る**（17.4 で入ったのは属性のみ）。web-haptics は非表示の `<label><input type="checkbox" switch></label>` を作り、`label.click()` を rAF ループで連打している。
+
+> **⚠️ 2026-09-09 実機検証:** この経路は**現行 iOS では発火しない**。鳴るのはユーザーが指で
+> 直接コントロールに触れたときだけで、合成クリックは無視される。web-haptics 自身も同じ端末で
+> 鳴らないことを確認済み。以下の記述は**技法の説明としては正確だが、結果は得られない**。
+> 経緯と一次情報は `docs/FINDINGS-ios-switch.md`。
 
 ```
 tick 間隔 = 16 + (1 - intensity) * 184  [ms]
@@ -159,7 +166,7 @@ tick 間隔 = 16 + (1 - intensity) * 184  [ms]
 | Transport | 基盤 | 短点 / 長点の作り方 | 忠実度 | 対応環境 |
 |---|---|---|---|---|
 | **A. Continuous** | `navigator.vibrate` | 1u ON / 3u ON（真の連続 ON） | ★★★ ITU 準拠 | Android Chrome |
-| **B. TickTrain** | iOS switch hack | 1 tick / 3u 間 tick 連打 | ★★☆ 時間包絡は保つ、質感が違う | iOS 17.4+ Safari |
+| **B. TickTrain** | iOS switch hack | 1 tick / 3u 間 tick 連打 | ★★☆ 時間包絡は保つ、質感が違う | ~~iOS 18.0+ Safari~~ **成立しない**（合成クリック不可・後述） |
 | **C. Semantic** | `navigator.playHaptics` | `tick` / `edge` | ★☆☆ リズムのみ、長さ無し | 未実装（ポリフィル経由） |
 
 **この 3 つを同じメッセージで A/B できる画面を作る = LT のデモそのもの。**
@@ -225,7 +232,7 @@ LT でこのスライドを見せると「ポリフィルとは何か」が 5 �
 web-haptics-api-demo/
 ├── docs/
 │   ├── DESIGN.md          ← 本書
-│   ├── TALK.md            ← 10分LTの進行台本
+│   ├── FINDINGS-ios-switch.md  ← iOS switch ハックの実機検証ログ
 │   └── IDEAS.md           ← 他アプリ案
 ├── src/
 │   ├── core/              ← フレームワーク非依存の純粋TS（ここが資産）
