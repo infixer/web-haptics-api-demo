@@ -19,12 +19,13 @@
 ポリフィルは **[infixer/polyfill-web-haptics-api](https://github.com/infixer/polyfill-web-haptics-api)
 へ切り出す前提**の独立パッケージです。移設手順は [切り出し方](#ポリフィルを別リポジトリへ切り出す) を参照。
 
-## スマホで実際に試す（2026-09-10 更新）
+## スマホで実際に試す（2026-09-11 更新）
 
 **`/lab`** にAndroidのリズム振動とiPhoneの直接タップ式switchデモを追加しました。
 Androidは `navigator.vibrate()`、iOSは本物のswitchを指で操作する経路です。
 iOSの合成クリックや任意の自動パターンは利用できる前提にしません。
-音は出さず、感触の申告と端末情報をJSONで保存できます。
+画面はAndroid／iOSのタブと操作だけに絞っています。検証フォーム・JSON保存・合成クリック比較は削除しました。
+LTの流れは [アウトライン](docs/LT-OUTLINE.md) にまとめています。
 
 [一次情報を含む再調査と実機テスト手順](docs/RESEARCH-mobile-haptics-2026-09.md)。
 最新版のスマホ実機での振動は未検証です。
