@@ -12,24 +12,69 @@
   let slider = $state(50);
   let lastNotch = 5;
   let lastTick = 0;
+  let environment = $state('');
+  let logs = $state<string[]>([]);
+  let copyStatus = $state('');
+  let copying = $state(false);
+  let logArea: HTMLTextAreaElement;
+  const logText = $derived([environment, '※ APIの受付・操作の記録です。実際の振動は検出できません。', ...logs].filter(Boolean).join('\n'));
+
+  function log(message: string) {
+    const activation = navigator.userActivation;
+    const context = `tab=${platform} enabled=${enabled} visibility=${document.visibilityState} activation=${activation?.hasBeenActive ?? 'unknown'}/${activation?.isActive ?? 'unknown'}`;
+    logs = [...logs, `${new Date().toISOString()} ${message} | ${context}`].slice(-60);
+    copyStatus = '';
+  }
+
+  async function copyLog() {
+    if (copying) return;
+    copying = true;
+    const snapshot = logText;
+    try {
+      await navigator.clipboard.writeText(snapshot);
+      copyStatus = 'コピーしました';
+    } catch {
+      logArea.focus();
+      logArea.select();
+      logArea.setSelectionRange(0, logArea.value.length);
+      copyStatus = '全文を選択しました。長押し、または Ctrl / ⌘ + C でコピー';
+    } finally {
+      copying = false;
+    }
+  }
+
+  function switchChanged(event: Event, name: string) {
+    const input = event.currentTarget as HTMLInputElement;
+    status = '切り替えました';
+    log(`${name} change checked=${input.checked} trusted=${event.isTrusted} (実振動は未判定)`);
+  }
 
   function play(name: string, pattern: readonly number[]) {
-    if (!enabled) { status = '振動はオフです。'; return; }
-    if (!vibrate) { status = 'このブラウザは非対応です'; return; }
-    if (document.visibilityState !== 'visible') return;
+    const request = `${name} vibrate(${JSON.stringify(pattern)})`;
+    if (!enabled) { status = '振動はオフです。'; log(`${request} SKIP: 振動オフ`); return; }
+    if (!vibrate) { status = 'このブラウザは非対応です'; log(`${request} SKIP: Vibration APIなし`); return; }
+    if (document.visibilityState !== 'visible') { log(`${request} SKIP: ページ非表示`); return; }
     try {
       const result = navigator.vibrate([...pattern]);
       selected = name;
       status = result ? `${name}を選択` : '振動を開始できませんでした';
-    } catch { status = '振動を開始できませんでした'; }
+      log(`${request} return=${result} ${result ? '受付 (実振動は未判定)' : '拒否'}`);
+    } catch (error) {
+      status = '振動を開始できませんでした';
+      log(`${request} ERROR: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`);
+    }
   }
-  function stop() {
-    if (vibrate) { try { navigator.vibrate(0); } catch { /* best effort */ } }
+  function stop(reason = '停止ボタン') {
+    if (vibrate) {
+      try { log(`${reason} vibrate(0) return=${navigator.vibrate(0)}`); }
+      catch (error) { log(`${reason} ERROR: ${String(error)}`); }
+    } else { log(`${reason} 停止要求なし: Vibration APIなし`); }
     status = '停止しました。';
   }
   function switchTab(next: 'android' | 'ios') {
-    stop();
+    stop('タブ切替');
     platform = next;
+    log(`タブ切替 → ${next}`);
     status = next === 'ios' ? 'スイッチを直接タップ' : 'タップして試す';
   }
   function tabKey(event: KeyboardEvent) {
@@ -58,9 +103,11 @@
       platform = 'ios';
       status = 'スイッチを直接タップ';
     }
-    const hide = () => { if (document.hidden) stop(); };
+    environment = `Haptics Lab / log-v1\n開始: ${new Date().toISOString()}\nUA: ${ua}\nsecureContext=${isSecureContext} iframe=${window.self !== window.top} vibrate=${vibrate} switch=${switches}\nactivation=hasBeenActive/isActive / 最新60件・時刻はUTC`;
+    log('ページ初期化');
+    const hide = () => { log(`表示状態 → ${document.visibilityState}`); if (document.hidden) stop('ページ非表示'); };
     document.addEventListener('visibilitychange', hide);
-    return () => { document.removeEventListener('visibilitychange', hide); stop(); };
+    return () => { document.removeEventListener('visibilitychange', hide); stop('ページ終了'); };
   });
 </script>
 
@@ -69,7 +116,7 @@
 <main>
   <header>
     <h1>Haptics Lab</h1>
-    <label class="enable"><input type="checkbox" bind:checked={enabled} onchange={() => { if (!enabled) stop(); else status = 'タップして試す'; }} /><span>振動</span></label>
+    <label class="enable"><input type="checkbox" bind:checked={enabled} onchange={(event) => { enabled = event.currentTarget.checked; log(`振動設定 → ${enabled ? 'ON' : 'OFF'}`); if (!enabled) stop('振動オフ'); else status = 'タップして試す'; }} /><span>振動</span></label>
   </header>
 
   <div class="tabs" role="tablist" aria-label="デバイス">
@@ -81,7 +128,7 @@
     {#if !vibrate}<p class="notice">対応するAndroidブラウザで開いてください。</p>{/if}
     <div class="patterns">
       {#each mobilePatterns as item}
-        <button class="pattern" class:selected={selected === item.name} disabled={!vibrate || !enabled} onclick={() => play(item.name, scalePattern(item.pattern, scale))}>
+        <button class="pattern" class:selected={selected === item.name} disabled={!enabled} onclick={() => play(item.name, scalePattern(item.pattern, scale))}>
           <span class="bars" aria-hidden="true">{#each item.pattern as ms, i}<i class:gap={i % 2 === 1} style:width={`${Math.max(6, ms / 3)}px`}></i>{/each}</span>
           <span class="pattern-label">{item.name}<span aria-hidden="true">↗</span></span>
         </button>
@@ -90,7 +137,7 @@
     <div class="controls">
       <label class="range"><span>振動の長さ <output>×{scale.toFixed(1)}</output></span><input type="range" min="0.5" max="3" step="0.1" bind:value={scale} disabled={!vibrate || !enabled} /></label>
       <label class="range"><span>ノッチをなぞる <output>{slider}</output></span><input type="range" min="0" max="100" value={slider} oninput={move} disabled={!vibrate || !enabled} /></label>
-      <div class="actions"><button class="baseline" disabled={!vibrate || !enabled} onclick={() => play('基準', [200])}>200ms を試す</button><button class="stop" onclick={stop} disabled={!vibrate} aria-label="振動を停止"><span aria-hidden="true">■</span> 停止</button></div>
+      <div class="actions"><button class="baseline" disabled={!enabled} onclick={() => play('基準', [200])}>200ms を試す</button><button class="stop" onclick={() => stop()} disabled={!vibrate} aria-label="振動を停止"><span aria-hidden="true">■</span> 停止</button></div>
     </div>
   </div>
 
@@ -99,12 +146,12 @@
     <div class="ios-surface">
       <div class="reference">
         <div><h2>スイッチ</h2><p>本体を直接タップ</p></div>
-        <input type="checkbox" {...{ switch: '' }} aria-label="基準スイッチ" disabled={!enabled || !switches} onchange={() => { status = '切り替えました'; }} />
+        <input type="checkbox" {...{ switch: '' }} aria-label="基準スイッチ" disabled={!enabled || !switches} onchange={(event) => switchChanged(event, '基準スイッチ')} />
       </div>
       <div class="overlay-demo">
         <div class="favorite" class:saved class:disabled={!enabled || !switches}>
           <span aria-hidden="true"><span class="heart">{saved ? '♥' : '♡'}</span>{saved ? 'お気に入り済み' : 'お気に入り'}</span>
-          <input class="overlay" type="checkbox" {...{ switch: '' }} aria-label="お気に入り" bind:checked={saved} disabled={!enabled || !switches} onchange={() => { status = saved ? 'お気に入りに追加しました' : 'お気に入りを解除しました'; }} />
+          <input class="overlay" type="checkbox" {...{ switch: '' }} aria-label="お気に入り" bind:checked={saved} disabled={!enabled || !switches} onchange={(event) => switchChanged(event, 'お気に入り')} />
         </div>
         <p class="hint">スクロールはボタンの外側から。</p>
       </div>
@@ -112,6 +159,13 @@
   </div>
 
   <div class="feedback"><p role="status">{enabled ? status : '振動オフ'}</p></div>
+
+  <section class="log-panel" aria-labelledby="log-title">
+    <div class="log-heading"><h2 id="log-title">操作ログ</h2><div class="actions"><button onclick={() => { logs = []; log('ログをクリア'); }}>クリア</button><button class="copy" onclick={copyLog} disabled={copying}>{copying ? 'コピー中…' : 'コピー'}</button></div></div>
+    <textarea bind:this={logArea} value={logText} readonly spellcheck="false" aria-label="操作ログの全文" wrap="off"></textarea>
+    <p class="log-note">受付＝実際の振動ではありません。最新60件。</p>
+    <p class="copy-status" role="status">{copyStatus}</p>
+  </section>
 
 </main>
 
@@ -156,5 +210,11 @@
   .hint { font-size: 0.8rem; color: var(--text-dim); }
   .feedback { display: flex; align-items: center; gap: 0.6rem; min-height: 44px; margin: 0.4rem 0 1rem; font-size: 0.8rem; color: var(--text-dim); }
   .feedback p { flex: 1; overflow-wrap: anywhere; }
+  .log-panel { border-top: 1px solid var(--border); padding-top: 1rem; }
+  .log-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .copy { background: var(--accent-soft); border-color: var(--accent); }
+  textarea { display: block; width: 100%; min-height: 160px; max-height: 400px; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 0.8rem/1.7 var(--mono); resize: vertical; }
+  .log-note, .copy-status { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem; overflow-wrap: anywhere; }
+  .copy-status:empty { display: none; }
   @media (max-width: 360px) { .pattern { padding: 0.85rem; } main { padding-inline: 0.75rem; } h1 { font-size: 1.15rem; } }
 </style>
