@@ -1,6 +1,6 @@
 # Webで「触った感」をつくってみた — LTアウトライン
 
-想定時間: 10分 / 対象: Web開発者 / 作成日: 2026-09-11
+想定時間: 10分 / 対象: Web開発者 / 作成日: 2026-09-11 / API・経緯の確認日: 2026-09-13
 
 流れ: **まずデモ → Hapticsとは → Web Haptics API → 試したことのログ → 分かったこと**。
 デモ画面には操作だけを置き、仕組みと経緯はこの資料で話す。
@@ -51,7 +51,21 @@
 
 ## 3. Web Haptics APIの紹介（2:30–4:00）
 
-**一番伝えたいこと:** 波形の数値を組み立てる代わりに、操作の意味を指定する提案。
+**一番伝えたいこと:** Webの操作に、OSの触覚フィードバックを結びつけるための提案。
+
+### 3-1. これまで: Vibration API（約25秒）
+
+- Webには以前から `navigator.vibrate()` がある。`[35, 70, 55]` は「35ms振動 → 70ms休止 → 55ms振動」。強さを指定する引数はない。
+- 2011年にW3Cの草案が公開され、2015年には勧告になった。ただし、標準化と全ブラウザでの実装は別。
+- 現在も対応は限定的。W3Cの2026年版はChromiumでの実装、WebKitの反対、Firefox 129での削除を明記している。「Androidならどのブラウザでも動く」とは言えない。
+
+出典: [MDNのAPI解説](https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API)、[W3C公開履歴](https://www.w3.org/standards/history/vibration/)、[W3C・2026年版の実装状況](https://www.w3.org/TR/2026/CRD-vibration-20260521/#sotd)。
+
+### 3-2. 新しい提案が解こうとしていること（約40秒）
+
+**背景:** ミリ秒の配列では「一段進んだ」「位置が合った」というUIの意図を直接表せない。提案者は、対応環境の偏りと、触覚のためにJavaScriptを書く必要がある点も課題に挙げている。[提案の課題整理](https://github.com/WICG/web-haptics#user-facing-problem)
+
+**考え方:** 開発者は効果の意味を指定し、ブラウザがOS・機器の表現へ対応づける。スマホに加え、触覚対応の入力機器を使うデスクトップも対象にしている。[WICGの提案](https://github.com/WICG/web-haptics#introduction)
 
 | | Vibration API | Web Haptics APIの提案 |
 |---|---|---|
@@ -74,13 +88,22 @@ button:active {
 }
 ```
 
-**話すこと**
+**話すこと（比較表とコードはどちらかを中心に見せる）**
 
 - `hint`: 操作を促す軽い合図。`tick`: 一段進む。`align`: 位置が合う。`edge`: 境界に達する。
 - 要求を端末側の表現に対応づける。同じ触感を全端末に保証するものではない。
 - まだ初期段階の提案。今日の `/` がこのAPIのブラウザ実装で動いているわけではない。
 
-出典: [WICG/web-haptics](https://github.com/WICG/web-haptics)（2026-09-11確認）。
+出典: [WICG/web-haptics](https://github.com/WICG/web-haptics)（2026-09-13確認）。
+
+### 3-3. どこまで進んでいるのか（約25秒）
+
+- 2026-01-30にWICGへの提案Issueが公開された。現在の文書も初期のアイデア・関心募集段階と明記している。
+- これは確定仕様や全ブラウザの実装合意を意味しない。iOSのswitchの触覚も、この提案APIの実装ではない。
+
+出典: [提案Issue #262](https://github.com/WICG/proposals/issues/262)、[現在の文書ステータス](https://github.com/WICG/web-haptics#status-of-this-document)。
+
+**90秒で話すときの要約:** 「Webには以前から、振動と休止をミリ秒で指定するVibration APIがあります。ただし対応ブラウザが限られ、操作に合ったリズムは自分で組む必要があります。そこで、tickなら一段進む、alignなら位置が合う、と意味を指定し、OSに表現を任せるWeb Haptics APIが提案されています。JavaScriptとCSSの両方を検討していますが、まだ初期の提案です。今日のデモは既存の仕組みを使っています」。詳しい年表は補足に回す。
 
 **つなぎ:** 「この提案を先に体験したくて、polyfillを作ってみました」
 
@@ -170,10 +193,34 @@ navigator.playHaptics()
 - 合成クリックとの対照が必要なら既存の `/probe` を発表者用に使う。通常の `/` には比較機能を戻さない。
 - 記録欄: 実施日 / 機種 / OS / ブラウザ / 操作 / 感じた結果。未確認は未確認のまま残す。
 
+## 補足: APIの経緯（発表者用・質疑用）
+
+| 時期 | 確認できた事実 | 一次情報 |
+|---|---|---|
+| 2011-11-17 | Vibration APIの最初の公開草案。端末の振動機構をWebから扱う取り組み | [W3C公開履歴](https://www.w3.org/standards/history/vibration/) |
+| 2015-02-10 / 2016-10-18 | Vibration APIが勧告、続いて改訂版の勧告 | [W3C公開履歴](https://www.w3.org/standards/history/vibration/) |
+| 現行案より前（日付はここでは確定しない） | 提案チームにはPointer Eventを基点にする先行案があった。現行文書では、JSへの依存やCSSで指定できない点を課題として振り返っている | [WICG・検討した代案](https://github.com/WICG/web-haptics#javascript-alternatives) |
+| 2026-01-30 | Web Haptics APIの提案IssueをWICGで公開。スナップ位置へのドラッグなどを用途として説明 | [WICG proposals #262](https://github.com/WICG/proposals/issues/262) |
+| 2026-05-21 | Vibration APIの更新版は勧告候補草案。現状の形で勧告に進む見込みはないと記載 | [W3C・日付固定の仕様文書](https://www.w3.org/TR/2026/CRD-vibration-20260521/) |
+| 2026-09-13確認 | Microsoft Edge側の説明文書はArchivedで、現在の議論先にWICGを案内。WICG版は初期提案と明記 | [Edge側の案内](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Haptics/explainer.md)、[WICG](https://github.com/WICG/web-haptics) |
+
+**読み違えないためのメモ:** 2015年の勧告と、更新中の2026年版の文書ステータスは区別する。2026-01-30はIssueの公開日であり、発案日やCSS構文の導入日ではない。Vibration APIの課題は新提案の動機として記載されているが、Vibration APIの廃止や置き換えが決まったとは書かれていない。
+
+**設計について聞かれたら**
+
+- 現行案は直近の入力機器へ出力する。触覚非対応なら別の機器には振り替えない。
+- 任意の波形作成や、長い処理の完了を知らせる通知は対象外。
+- 機器の能力や実際に触覚を出せたかを取得する仕組みは設けず、プライバシーにも配慮している。
+
+出典: [WICG・提案方式と対象外の用途](https://github.com/WICG/web-haptics#proposed-approach)。これらも今後変更され得る。
+
 ## 補足・出典
 
 - [既存の実機検証ログ](FINDINGS-ios-switch.md)
 - [2026-09-10の再調査と訂正](RESEARCH-mobile-haptics-2026-09.md)
+- [MDN・Vibration APIの解説](https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API)
+- [W3C・Vibration APIの仕様と現状](https://www.w3.org/TR/2026/CRD-vibration-20260521/)
+- [WICGへの提案Issue](https://github.com/WICG/proposals/issues/262)
 - [Web Haptics API提案](https://github.com/WICG/web-haptics)
 - [Chrome公式のVibration APIサンプル](https://googlechrome.github.io/samples/vibration/)
 - [WebKitによるiOS 18のswitch触覚の説明](https://webkit.org/blog/15865/webkit-features-in-safari-18-0/)
